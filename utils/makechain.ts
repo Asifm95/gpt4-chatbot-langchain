@@ -1,8 +1,29 @@
 import { OpenAI } from 'langchain/llms/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { ConversationalRetrievalQAChain } from 'langchain/chains';
+import { CallbackManager } from 'langchain/callbacks';
+import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { BaseRetriever } from 'langchain/dist/schema';
 
-const CONDENSE_PROMPT = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
+export const createRetriever = (
+  vectorStore: PineconeStore,
+  filter?: any,
+): BaseRetriever => {
+  const embeddings = new OpenAIEmbeddings();
+  const retriever = vectorStore.asRetriever();
+  retriever.getRelevantDocuments = async (query: any) => {
+    const results = await vectorStore.similaritySearchVectorWithScore(
+      await embeddings.embedQuery(query),
+      3,
+    );
+    return results
+      .filter(([_, score]) => score >= 0.78)
+      .map((result) => result[0]);
+  };
+  return retriever;
+};
+
+const CONDENSE_PROMPT = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question. If the follow up question is not related to the conversation, dont change it.
 
 Chat History:
 {chat_history}
@@ -22,11 +43,19 @@ export const makeChain = (vectorstore: PineconeStore) => {
   const model = new OpenAI({
     temperature: 0, // increase temepreature to get more creative answers
     modelName: 'gpt-3.5-turbo', //change this to gpt-4 if you have access
+    streaming: true,
+    callbackManager: CallbackManager.fromHandlers({
+      async handleLLMStart(llm, prompts, verbose) {
+        console.log('Starting LLM');
+        console.log('Prompt:', prompts);
+        console.log('-------------------------------------------');
+      },
+    }),
   });
 
   const chain = ConversationalRetrievalQAChain.fromLLM(
     model,
-    vectorstore.asRetriever(),
+    createRetriever(vectorstore),
     {
       qaTemplate: QA_PROMPT,
       questionGeneratorTemplate: CONDENSE_PROMPT,

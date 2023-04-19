@@ -2,42 +2,69 @@ import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { pinecone } from '@/utils/pinecone-client';
-import { CustomPDFLoader } from '@/utils/customPDFLoader';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
-import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
+import { MongoClient } from 'mongodb';
+import { ObjectId } from 'mongodb';
 
 /* Name of directory to retrieve your files from */
-const filePath = 'docs';
 
 export const run = async () => {
   try {
-    /*load raw docs from the all files in the directory */
-    const directoryLoader = new DirectoryLoader(filePath, {
-      '.pdf': (path) => new CustomPDFLoader(path),
-    });
+    console.log('connecting to database...');
+    if (!process.env.MONGO_URI) {
+      throw new Error('Missing MongoDB URI in .env file');
+    }
+    // @ts-ignore
+    const client = await MongoClient.connect(process.env.MONGO_URI);
+    console.log('connected to database');
 
-    // const loader = new PDFLoader(filePath);
-    const rawDocs = await directoryLoader.load();
+    /*load documents from db */
+    const coll = client.db('hc').collection('pages');
+    const cursor = coll.find({
+      centerId: new ObjectId(PINECONE_NAME_SPACE),
+    });
+    const result = await cursor.toArray();
 
     /* Split text into chunks */
     const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000,
-      chunkOverlap: 200,
+      chunkSize: 2000,
+      chunkOverlap: 0,
     });
-
-    const docs = await textSplitter.splitDocuments(rawDocs);
-    console.log('split docs', docs);
 
     console.log('creating vector store...');
     /*create and store the embeddings in the vectorStore*/
     const embeddings = new OpenAIEmbeddings();
-    const index = pinecone.Index(PINECONE_INDEX_NAME); //change to your own index name
 
-    //embed the PDF documents
-    await PineconeStore.fromDocuments(docs, embeddings, {
-      pineconeIndex: index,
-      namespace: PINECONE_NAME_SPACE,
-      textKey: 'text',
+    const pineconeStore = await PineconeStore.fromExistingIndex(embeddings, {
+      pineconeIndex: pinecone.Index(PINECONE_INDEX_NAME),
+      namespace: 'hc-collectchat',
+    });
+
+    let docs: any[] = [];
+    for (const page of result) {
+      if (!page.title || !page.text) continue;
+
+      const textArrays = await textSplitter.splitText(`#${page.title}
+        
+      =====================
+
+      ${page.text}`);
+
+      const docOutput = textArrays.map((text) => ({
+        pageContent: text,
+        metadata: {
+          id: page._id,
+          title: page.title,
+          tags: page.tags,
+          slugId: page.slugId,
+        },
+      }));
+      docs = [...docs, ...docOutput];
+    }
+    console.log('docs', docs);
+    console.log('calling addDocument ingesting data...');
+    await pineconeStore.addDocuments(docs).then((res) => {
+      console.log('res: completed', res);
     });
   } catch (error) {
     console.log('error', error);

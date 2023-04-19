@@ -34,10 +34,12 @@ export default async function handler(
       {
         pineconeIndex: index,
         textKey: 'text',
-        namespace: PINECONE_NAME_SPACE, //namespace comes from your config folder
+        namespace: 'hc-collectchat', //namespace comes from your config folder
       },
     );
 
+    const s = vectorStore.asRetriever();
+    s.getRelevantDocuments;
     //create chain
     const chain = makeChain(vectorStore);
     //Ask a question using chat history
