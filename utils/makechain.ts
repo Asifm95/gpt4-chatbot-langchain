@@ -32,12 +32,19 @@ Standalone question:`;
 
 const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
-If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context.
+If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context. If you are asked a question that is not related to the context or if the context is empty, DO NOT try to make up an answer.
 
 {context}
 
 Question: {question}
 Helpful answer in markdown:`;
+
+// const QA_PROMPT = `I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info below. If the answer is not included, say exactly "Hmm, I am not sure." and stop after that. Refuse to answer any question not about the info. Never break character.
+
+// {context}
+
+// Question: {question}
+// Helpful answer in markdown:`;
 
 export const makeChain = (vectorstore: PineconeStore) => {
   const model = new OpenAI({
@@ -56,6 +63,7 @@ export const makeChain = (vectorstore: PineconeStore) => {
   const chain = ConversationalRetrievalQAChain.fromLLM(
     model,
     createRetriever(vectorstore),
+    // vectorstore.asRetriever(),
     {
       qaTemplate: QA_PROMPT,
       questionGeneratorTemplate: CONDENSE_PROMPT,
