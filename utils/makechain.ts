@@ -16,32 +16,56 @@ export const createRetriever = (
       await embeddings.embedQuery(query),
       3,
     );
-    return results
-      .filter(([_, score]) => score >= 0.78)
-      .map((result) => result[0]);
+    return (
+      results
+        // .filter(([_, score]) => score >= 0.78)
+        .map(([result, score]) => ({
+          ...result,
+          metadata: { ...result.metadata, score },
+        }))
+    );
   };
   return retriever;
 };
 
-const CONDENSE_PROMPT = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question. If the follow up question is not related to the conversation, dont change it.
+const CONDENSE_PROMPT = `Given the following conversation and a follow up input, rephrase the follow up question to be a standalone question. If the follow up input is not related to the conversation, just return the follow up input as the standalone question.
 
 Chat History:
 {chat_history}
+
 Follow Up Input: {question}
 Standalone question:`;
 
+// const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
+
+// Context: {context}
+
+// If you don't know the answer or if the context is empty, just say "I'm not tuned to answer that. How else can I be of assistance?". DO NOT try to make up an answer.
+// If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context. If the question is a greeting, say "Hello, how can I help you?". Never break character.
+
+// Question: {question}
+// Helpful answer in markdown:`;
+
 const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
-If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context. If you are asked a question that is not related to the context or if the context is empty, DO NOT try to make up an answer.
+If the question is not related to the context, politely respond that you can only answer questions that are related to Collect chat.
 
 {context}
+
+If the answer is not included, follow the rules below:
+1. If the question is a greeting, respond back politely.
+3. If the qestion is unrelated to Collect chat, politely respond that you can only answer questions that are related to Collect chat.
+
+Make sure the answer is in markdown format. Add line breaks when needed. Use bullet points if needed. Use bold, italics, and links if needed. Also make the links clickable.
 
 Question: {question}
 Helpful answer in markdown:`;
 
-// const QA_PROMPT = `I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info below. If the answer is not included, say exactly "Hmm, I am not sure." and stop after that. Refuse to answer any question not about the info. Never break character.
+// const QA_PROMPT = `I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info below.
 
 // {context}
+
+// If the answer is not included, say exactly "Hmm, I am not sure." and stop after that. Refuse to answer any question not about Collect chat. Never break character.
 
 // Question: {question}
 // Helpful answer in markdown:`;

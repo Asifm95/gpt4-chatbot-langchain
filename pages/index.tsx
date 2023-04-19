@@ -76,7 +76,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           question,
-          history,
+          history: history.slice(-3),
         }),
       });
       const data = await response.json();
@@ -103,7 +103,12 @@ export default function Home() {
       setLoading(false);
 
       //scroll to bottom
-      messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
+      setTimeout(() => {
+        messageListRef.current?.scrollTo(
+          0,
+          messageListRef.current.scrollHeight,
+        );
+      });
     } catch (error) {
       setLoading(false);
       setError('An error occurred while fetching the data. Please try again.');
@@ -184,23 +189,27 @@ export default function Home() {
                             collapsible
                             className="flex-col"
                           >
-                            {message.sourceDocs.map((doc, index) => (
-                              <div key={`messageSourceDocs-${index}`}>
-                                <AccordionItem value={`item-${index}`}>
-                                  <AccordionTrigger>
-                                    <h3>Source {index + 1}</h3>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <ReactMarkdown linkTarget="_blank">
-                                      {doc.pageContent}
-                                    </ReactMarkdown>
-                                    <p className="mt-2">
-                                      <b>Source:</b> {doc.metadata.source}
-                                    </p>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              </div>
-                            ))}
+                            {message.sourceDocs.map(
+                              (doc, index) =>
+                                doc.metadata.score >= 0.78 && (
+                                  <div key={`messageSourceDocs-${index}`}>
+                                    <AccordionItem value={`item-${index}`}>
+                                      <AccordionTrigger>
+                                        <h3>Source {index + 1}</h3>
+                                      </AccordionTrigger>
+                                      <AccordionContent>
+                                        <ReactMarkdown linkTarget="_blank">
+                                          {doc.pageContent}
+                                        </ReactMarkdown>
+                                        <p className="mt-2">
+                                          <b>Source:</b> {doc.metadata.source}{' '}
+                                          {doc.metadata.score}
+                                        </p>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  </div>
+                                ),
+                            )}
                           </Accordion>
                         </div>
                       )}
