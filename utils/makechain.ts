@@ -28,7 +28,7 @@ export const createRetriever = (
   return retriever;
 };
 
-const CONDENSE_PROMPT = `Given the following conversation and a follow up input, rephrase the follow up question to be a standalone question. If the follow up input is not related to the conversation, just return the follow up input as the standalone question.
+const CONDENSE_PROMPT = `Given the following conversation and a follow up input, rephrase the follow up question to be a standalone question. If the follow up input is not related to the conversation or not a question, just return the follow up input as is.
 
 Chat History:
 {chat_history}
