@@ -17,12 +17,14 @@ export const createRetriever = (
       await embeddings.embedQuery(query),
       3,
     );
-    return results
-      .filter(([_, score]) => score >= 0.78)
-      .map(([result, score]) => ({
-        ...result,
-        metadata: { ...result.metadata, score },
-      }));
+    return (
+      results
+        // .filter(([_, score]) => score >= 0.78)
+        .map(([result, score]) => ({
+          ...result,
+          metadata: { ...result.metadata, score },
+        }))
+    );
   };
   return retriever;
 };

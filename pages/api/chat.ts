@@ -38,14 +38,17 @@ export default async function handler(
       },
     );
 
-    const s = vectorStore.asRetriever();
-    s.getRelevantDocuments;
+    const chat_history =
+      history?.map((item: [string, string]) => [
+        `user: ${item[0]}`,
+        `assistant: ${item[1]}`,
+      ]) || [];
     //create chain
     const chain = makeChain(vectorStore);
     //Ask a question using chat history
     const response = await chain.call({
       question: sanitizedQuestion,
-      chat_history: history || [],
+      chat_history,
     });
 
     console.log('response', response);

@@ -31,7 +31,7 @@ export interface CustomConversationalRetrievalQAChainInput
   retriever: BaseRetriever;
   combineDocumentsChain: BaseChain;
   questionGeneratorChain: LLMChain;
-  emptyContextResponseGeneratorChain: LLMChain;
+  emptyContextResponseGeneratorChain?: LLMChain;
   returnSourceDocuments?: boolean;
   inputKey?: string;
 }
@@ -41,12 +41,14 @@ export class CustomConversationalRetrievalQAChain
   implements CustomConversationalRetrievalQAChainInput
 {
   outputKey = 'text';
-  emptyContextResponseGeneratorChain: LLMChain;
+  emptyContextResponseGeneratorChain?: LLMChain;
 
   constructor(fields: CustomConversationalRetrievalQAChainInput) {
     super(fields);
-    this.emptyContextResponseGeneratorChain =
-      fields.emptyContextResponseGeneratorChain;
+    if (fields.questionGeneratorChain) {
+      this.emptyContextResponseGeneratorChain =
+        fields.emptyContextResponseGeneratorChain;
+    }
   }
 
   async _call(values: ChainValues): Promise<ChainValues> {
@@ -74,7 +76,7 @@ export class CustomConversationalRetrievalQAChain
       }
     }
     const docs = await this.retriever.getRelevantDocuments(newQuestion);
-    if (docs.length === 0) {
+    if (docs.length === 0 && this.emptyContextResponseGeneratorChain) {
       const result = await this.emptyContextResponseGeneratorChain.call({
         question,
         chat_history: chatHistory,
@@ -126,19 +128,24 @@ export class CustomConversationalRetrievalQAChain
       questionGeneratorTemplate || question_generator_template,
     );
     const qa_prompt = PromptTemplate.fromTemplate(qaTemplate || qa_template);
-    const empty_context_response_generator_prompt = PromptTemplate.fromTemplate(
-      emptyContextResponseGeneratorTemplate ||
-        empty_context_response_generator_template,
-    );
     const qaChain = loadQAStuffChain(llm, { prompt: qa_prompt });
     const questionGeneratorChain = new LLMChain({
       prompt: question_generator_prompt,
       llm,
     });
-    const emptyContextResponseGeneratorChain = new LLMChain({
-      prompt: empty_context_response_generator_prompt,
-      llm,
-    });
+
+    let emptyContextResponseGeneratorChain: LLMChain | undefined;
+    if (emptyContextResponseGeneratorTemplate) {
+      const empty_context_response_generator_prompt =
+        PromptTemplate.fromTemplate(
+          emptyContextResponseGeneratorTemplate ||
+            empty_context_response_generator_template,
+        );
+      emptyContextResponseGeneratorChain = new LLMChain({
+        prompt: empty_context_response_generator_prompt,
+        llm,
+      });
+    }
 
     const instance = new this({
       retriever,
