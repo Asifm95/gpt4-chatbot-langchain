@@ -23,12 +23,7 @@ export default function Home() {
     history: [string, string][];
     pendingSourceDocs?: Document[];
   }>({
-    messages: [
-      {
-        message: 'Hi, what would you like to learn about this legal case?',
-        type: 'apiMessage',
-      },
-    ],
+    messages: [],
     history: [],
   });
 
@@ -120,6 +115,13 @@ export default function Home() {
   const handleEnter = (e: any) => {
     if (e.key === 'Enter' && query) {
       handleSubmit(e);
+      //scroll to bottom
+      setTimeout(() => {
+        messageListRef.current?.scrollTo(
+          0,
+          messageListRef.current.scrollHeight,
+        );
+      });
     } else if (e.key == 'Enter') {
       e.preventDefault();
     }
@@ -233,7 +235,7 @@ export default function Home() {
                     placeholder={
                       loading
                         ? 'Waiting for response...'
-                        : 'What is this legal case about?'
+                        : 'How can I help you?'
                     }
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}

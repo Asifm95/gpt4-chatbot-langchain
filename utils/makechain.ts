@@ -1,6 +1,7 @@
 import { OpenAI } from 'langchain/llms/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { ConversationalRetrievalQAChain } from 'langchain/chains';
+import { CustomConversationalRetrievalQAChain } from './CustomConversationalRetrievalQAChain';
 import { CallbackManager } from 'langchain/callbacks';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { BaseRetriever } from 'langchain/dist/schema';
@@ -16,14 +17,12 @@ export const createRetriever = (
       await embeddings.embedQuery(query),
       3,
     );
-    return (
-      results
-        // .filter(([_, score]) => score >= 0.78)
-        .map(([result, score]) => ({
-          ...result,
-          metadata: { ...result.metadata, score },
-        }))
-    );
+    return results
+      .filter(([_, score]) => score >= 0.78)
+      .map(([result, score]) => ({
+        ...result,
+        metadata: { ...result.metadata, score },
+      }));
   };
   return retriever;
 };
@@ -35,16 +34,6 @@ Chat History:
 
 Follow Up Input: {question}
 Standalone question:`;
-
-// const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
-
-// Context: {context}
-
-// If you don't know the answer or if the context is empty, just say "I'm not tuned to answer that. How else can I be of assistance?". DO NOT try to make up an answer.
-// If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context. If the question is a greeting, say "Hello, how can I help you?". Never break character.
-
-// Question: {question}
-// Helpful answer in markdown:`;
 
 const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
@@ -60,6 +49,21 @@ Make sure the answer is in markdown format. Add line breaks when needed. Use bul
 
 Question: {question}
 Helpful answer in markdown:`;
+
+const EMPTY_CONTEXT_RESPONSE_PROMPT = `You are a helpful AI assistant. No context is available. If the below question is a greeting, respond back politely. If the question is unrelated to Collect chat, politely respond that you can only answer questions that are related to Collect chat. Dont asnwer questions that asks "What is x?" if x is not related to Collect chat. Never break character.
+
+Question: {question}
+Helpful Answer:`;
+
+// const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
+
+// Context: {context}
+
+// If you don't know the answer or if the context is empty, just say "I'm not tuned to answer that. How else can I be of assistance?". DO NOT try to make up an answer.
+// If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context. If the question is a greeting, say "Hello, how can I help you?". Never break character.
+
+// Question: {question}
+// Helpful answer in markdown:`;
 
 // const QA_PROMPT = `I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info below.
 
@@ -84,14 +88,15 @@ export const makeChain = (vectorstore: PineconeStore) => {
     }),
   });
 
-  const chain = ConversationalRetrievalQAChain.fromLLM(
+  const chain = CustomConversationalRetrievalQAChain.fromLLM(
     model,
     createRetriever(vectorstore),
     // vectorstore.asRetriever(),
     {
       qaTemplate: QA_PROMPT,
       questionGeneratorTemplate: CONDENSE_PROMPT,
-      returnSourceDocuments: true, //The number of source documents returned is 4 by default
+      emptyContextResponseGeneratorTemplate: EMPTY_CONTEXT_RESPONSE_PROMPT,
+      returnSourceDocuments: true,
     },
   );
   return chain;
