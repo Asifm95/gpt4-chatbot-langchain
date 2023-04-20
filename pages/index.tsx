@@ -12,6 +12,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import remarkGfm from 'remark-gfm';
 
 export default function Home() {
   const [query, setQuery] = useState<string>('');
@@ -176,7 +177,10 @@ export default function Home() {
                       <div key={`chatMessage-${index}`} className={className}>
                         {icon}
                         <div className={styles.markdownanswer}>
-                          <ReactMarkdown linkTarget="_blank">
+                          <ReactMarkdown
+                            linkTarget="_blank"
+                            remarkPlugins={[remarkGfm]}
+                          >
                             {message.message}
                           </ReactMarkdown>
                         </div>
