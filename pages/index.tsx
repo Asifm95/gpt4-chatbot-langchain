@@ -100,10 +100,21 @@ export default function Home() {
 
       //scroll to bottom
       setTimeout(() => {
-        messageListRef.current?.scrollTo(
-          0,
-          messageListRef.current.scrollHeight,
-        );
+        messageListRef.current?.scrollIntoView({
+          behavior: 'smooth',
+        });
+
+        if (messageListRef.current) {
+          [
+            ...messageListRef.current
+              ?.querySelectorAll('[data-type="message"]')
+              ?.values(),
+          ]
+            ?.pop()
+            ?.scrollIntoView({
+              behavior: 'smooth',
+            });
+        }
       });
     } catch (error) {
       setLoading(false);
@@ -174,7 +185,11 @@ export default function Home() {
                   }
                   return (
                     <>
-                      <div key={`chatMessage-${index}`} className={className}>
+                      <div
+                        key={`chatMessage-${index}`}
+                        className={className}
+                        data-type="message"
+                      >
                         {icon}
                         <div className={styles.markdownanswer}>
                           <ReactMarkdown
