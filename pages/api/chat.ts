@@ -4,6 +4,7 @@ import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { makeChain } from '@/utils/makechain';
 import { pinecone } from '@/utils/pinecone-client';
 import { PINECONE_INDEX_NAME, PINECONE_NAME_SPACE } from '@/config/pinecone';
+import { generateChat } from '@/utils/generate-chat';
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,7 +12,8 @@ export default async function handler(
 ) {
   const { question, history } = req.body;
 
-  console.log('question', question);
+  console.log('------------------------------------');
+  console.log('🚀 ~ question:', question);
 
   //only accept post requests
   if (req.method !== 'POST') {
@@ -38,20 +40,26 @@ export default async function handler(
       },
     );
 
-    const chat_history =
-      history?.map((item: [string, string]) => [
-        `user: ${item[0]}`,
-        `assistant: ${item[1]}`,
-      ]) || [];
+    // const chat_history =
+    //   history?.map((item: [string, string]) => [
+    //     `user: ${item[0]}`,
+    //     `assistant: ${item[1]}`,
+    //   ]) || [];
     //create chain
-    const chain = makeChain(vectorStore);
+    // const chain = makeChain(vectorStore);
     //Ask a question using chat history
-    const response = await chain.call({
-      question: sanitizedQuestion,
-      chat_history,
-    });
+    // const response = await chain.call({
+    //   question: sanitizedQuestion,
+    //   chat_history,
+    // });
 
-    console.log('response', response);
+    const response = await generateChat(
+      sanitizedQuestion,
+      history,
+      vectorStore,
+    );
+
+    // console.log('response', response);
     res.status(200).json(response);
   } catch (error: any) {
     console.log('error', error);

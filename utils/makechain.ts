@@ -28,24 +28,32 @@ export const createRetriever = (
   };
   return retriever;
 };
+// , rephrase the follow-up input to be a standalone question.
 
-const CONDENSE_PROMPT = `Given the following conversation and a follow up input, rephrase the follow up question to be a standalone question. If the follow up input is not related to the conversation or not a question, just return the follow up input as is.
+const CONDENSE_PROMPT = `Given the following chat history and a follow-up input, use the follow-up input as the standalone question without any changes if:
+1. The follow-up input is a greeting or an imperative statement.
+2. The follow-up input is is not related to the conversation.
+3. The follow-up input is an incomplete sentence.
+4. If the follow-up input exactly matches the response 'thank you', 'ok', 'did you know', or any other non-relevant input.
+
+If no standalone question can be created, just return the follow-up input as the standalone question.
 
 Chat History:
 {chat_history}
 
-Follow Up Input: {question}
+Follow-up Input: {question}
 Standalone question:`;
 
-const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
+const QA_PROMPT = `You are a helpful AI assistant. Use the following pieces of context & chat history to answer the question at the end.
 If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
 If the question is not related to the context, politely respond that you can only answer questions that are related to Collect chat.
 
+Context:
 {context}
 
 If the answer is not included, follow the rules below:
 1. If the question is a greeting, respond back politely.
-3. If the qestion is unrelated to Collect chat, politely respond that you can only answer questions that are related to Collect chat.
+2. If the qestion is unrelated to Collect chat, politely respond that you can only answer questions that are related to Collect chat.
 
 Make sure the answer is in markdown format. Add line breaks when needed. Use bullet points if needed. Use bold, italics, and links if needed. Hyperlink URLs if possible. If the answer is a code snippet, use the code block markdown.
 
